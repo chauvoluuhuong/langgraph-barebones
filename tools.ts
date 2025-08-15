@@ -1,10 +1,11 @@
-import { DynamicTool } from "@langchain/core/tools";
+import { Tool } from "@langchain/core/tools";
 
 // Weather tool - simulates getting weather information
-const weatherTool = new DynamicTool({
-  name: "get_weather",
-  description: "Get the current weather for a specific location",
-  func: async (input: string) => {
+class WeatherTool extends Tool {
+  name = "get_weather";
+  description = "Get the current weather for a specific location";
+
+  protected async _call(input: string): Promise<string> {
     // Simulate API call delay
     await new Promise((resolve) => setTimeout(resolve, 100));
 
@@ -31,14 +32,15 @@ const weatherTool = new DynamicTool({
     };
 
     return `Weather in ${input}: ${weather.temp}, ${weather.condition}, Humidity: ${weather.humidity}`;
-  },
-});
+  }
+}
 
 // Calculator tool - performs basic math operations
-const calculatorTool = new DynamicTool({
-  name: "calculator",
-  description: "Perform basic mathematical calculations",
-  func: async (input: string) => {
+class CalculatorTool extends Tool {
+  name = "calculator";
+  description = "Perform basic mathematical calculations";
+
+  protected async _call(input: string): Promise<string> {
     try {
       // Simple and safe evaluation - only allows basic math operations
       const sanitizedExpression = input.replace(/[^0-9+\-*/().\s]/g, "");
@@ -49,14 +51,15 @@ const calculatorTool = new DynamicTool({
         error instanceof Error ? error.message : String(error);
       return `Error calculating ${input}: ${errorMessage}`;
     }
-  },
-});
+  }
+}
 
 // Time tool - gets current time for different timezones
-const timeTool = new DynamicTool({
-  name: "get_time",
-  description: "Get the current time for a specific timezone or location",
-  func: async (input: string) => {
+class TimeTool extends Tool {
+  name = "get_time";
+  description = "Get the current time for a specific timezone or location";
+
+  protected async _call(input: string): Promise<string> {
     try {
       const now = new Date();
       const timezone = input.toLowerCase();
@@ -100,14 +103,15 @@ const timeTool = new DynamicTool({
         error instanceof Error ? error.message : String(error);
       return `Error getting time for ${input}: ${errorMessage}`;
     }
-  },
-});
+  }
+}
 
 // Search tool - simulates web search
-const searchTool = new DynamicTool({
-  name: "web_search",
-  description: "Search for information on the web",
-  func: async (input: string) => {
+class SearchTool extends Tool {
+  name = "web_search";
+  description = "Search for information on the web";
+
+  protected async _call(input: string): Promise<string> {
     // Simulate search delay
     await new Promise((resolve) => setTimeout(resolve, 200));
 
@@ -129,7 +133,12 @@ const searchTool = new DynamicTool({
       `Search results for "${input}": No specific information found, but this is a simulated search result.`;
 
     return result;
-  },
-});
+  }
+}
 
-export const tools = [weatherTool, calculatorTool, timeTool, searchTool];
+export const tools = [
+  new WeatherTool(),
+  new CalculatorTool(),
+  new TimeTool(),
+  new SearchTool(),
+];

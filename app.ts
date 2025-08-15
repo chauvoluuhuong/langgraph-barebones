@@ -56,6 +56,8 @@ const workflow = new StateGraph(MessagesAnnotation)
 // Finally, we compile it into a LangChain Runnable.
 const app = workflow.compile();
 
+app.getGraphAsync().then((graph) => console.log(graph.drawMermaid()));
+
 // Use the agent
 const finalState = await app.invoke({
   messages: [new HumanMessage("what is the weather in sf")],
