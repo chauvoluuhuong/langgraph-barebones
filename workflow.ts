@@ -6,7 +6,7 @@ import { StateGraph, MessagesAnnotation } from "@langchain/langgraph";
 import { MemorySaver } from "@langchain/langgraph-checkpoint";
 
 import { tools } from "./tools";
-import { spinner } from "@clack/prompts";
+import { spinner, text } from "@clack/prompts";
 
 export async function showWorkflow() {
   // Import loadCredentials dynamically to avoid circular dependency
@@ -173,89 +173,73 @@ export async function runApplication() {
   console.log("\n🤖 Interactive AI Assistant with Memory");
   console.log("Type your messages below. Type '/quit' to exit.\n");
 
-  // Interactive conversation loop with conversation state management
-  const readline = await import("readline");
-  const rl = readline.createInterface({
-    input: process.stdin,
-    output: process.stdout,
-  });
-
-  const askQuestion = (question: string): Promise<string> => {
-    return new Promise((resolve) => {
-      rl.question(question, (answer) => {
-        resolve(answer);
-      });
-    });
-  };
-
-  // Generate a unique thread ID for this conversation session
-  const threadId = `conversation_${Date.now()}`;
-
   // Initialize conversation state
   let conversationState: typeof MessagesAnnotation.State = {
     messages: [],
   };
 
-  try {
-    while (true) {
-      const userInput = await askQuestion("🗣️  You: ");
+  while (true) {
+    const userInput = await text({
+      message: "🗣️  You:",
+      placeholder: "Type your message here...",
+    });
 
-      // Check if user wants to quit
-      if (userInput.toLowerCase() === "/quit") {
-        console.log("\n👋 Goodbye! Conversation ended.");
-        break;
-      }
-
-      // Skip empty messages
-      if (userInput.trim() === "") {
-        continue;
-      }
-
-      try {
-        // Show spinner while processing
-        const s = spinner();
-        s.start("🤔 Thinking...");
-
-        // Add user message to conversation state
-        conversationState.messages.push(new HumanMessage(userInput));
-
-        // Process the user's message with conversation context
-        const response = await app.invoke(conversationState);
-
-        // Stop the spinner
-        s.stop("✅ Response ready");
-
-        // Display the last assistant message
-        const lastAssistantMessage =
-          response.messages[response.messages.length - 1];
-        console.log("🤖 Assistant:", lastAssistantMessage.content);
-
-        // Check if any tools were used and display them
-        const toolMessages = response.messages.filter(
-          (msg) =>
-            (msg as AIMessage).tool_calls &&
-            (msg as AIMessage).tool_calls!.length > 0
-        );
-
-        if (toolMessages.length > 0) {
-          console.log("\n🔧 Tools used:");
-          toolMessages.forEach((msg) => {
-            const aiMessage = msg as AIMessage;
-            aiMessage.tool_calls?.forEach((toolCall: any) => {
-              console.log(
-                `  • ${toolCall.name}: ${toolCall.args ? JSON.stringify(toolCall.args) : "No args"}`
-              );
-            });
-          });
-        }
-
-        console.log(); // Empty line for better readability
-      } catch (error) {
-        console.error("❌ Error processing message:", error);
-        console.log("Please try again.\n");
-      }
+    // Check if user cancelled or wants to quit
+    if (typeof userInput === "symbol" || userInput.toLowerCase() === "/quit") {
+      console.log("\n👋 Goodbye! Conversation ended.");
+      break;
     }
-  } finally {
-    rl.close();
+
+    // Skip empty messages
+    if (userInput.trim() === "") {
+      continue;
+    }
+
+    try {
+      // Show spinner while processing
+      const s = spinner();
+      s.start("🤔 Thinking...");
+
+      // Add user message to conversation state
+      conversationState.messages.push(new HumanMessage(userInput));
+
+      // Process the user's message with conversation context
+      const response = await app.invoke(conversationState);
+
+      // Stop the spinner
+      s.stop("✅ Response ready");
+
+      // Update conversation state with the response
+      conversationState = response;
+
+      // Display the last assistant message
+      const lastAssistantMessage =
+        response.messages[response.messages.length - 1];
+      console.log("🤖 Assistant:", lastAssistantMessage.content);
+
+      // Check if any tools were used and display them
+      const toolMessages = response.messages.filter(
+        (msg) =>
+          (msg as AIMessage).tool_calls &&
+          (msg as AIMessage).tool_calls!.length > 0
+      );
+
+      if (toolMessages.length > 0) {
+        console.log("\n🔧 Tools used:");
+        toolMessages.forEach((msg) => {
+          const aiMessage = msg as AIMessage;
+          aiMessage.tool_calls?.forEach((toolCall: any) => {
+            console.log(
+              `  • ${toolCall.name}: ${toolCall.args ? JSON.stringify(toolCall.args) : "No args"}`
+            );
+          });
+        });
+      }
+
+      console.log(); // Empty line for better readability
+    } catch (error) {
+      console.error("❌ Error processing message:", error);
+      console.log("Please try again.\n");
+    }
   }
 }
