@@ -1,14 +1,16 @@
-# LangGraph Barebones with Model Selection
+# LangGraph Interactive AI Assistant
 
-A TypeScript LangGraph application that supports both OpenAI and Google Gemini models with an interactive setup process.
+A TypeScript LangGraph application that provides an interactive AI assistant with conversation memory, supporting both OpenAI and Google Gemini models with a beautiful CLI interface.
 
 ## Features
 
-- 🤖 **Model Selection**: Choose between OpenAI GPT-4 and Google Gemini Pro
+- 🤖 **Interactive AI Assistant**: Chat with an AI that maintains conversation memory
+- 🧠 **Conversation Memory**: The AI remembers the full conversation context
+- 🔧 **Built-in Tools**: Calculator, web search, and file operations
+- 🎨 **Beautiful CLI Interface**: Powered by [Clack](https://www.clack.cc/) for an intuitive experience
 - 🔐 **Secure Credential Management**: Store API keys in `.env` files
-- 🎨 **Beautiful CLI Interface**: Powered by [Clack](https://www.clack.cc/) for an intuitive setup experience
-- 🛠️ **Tool Integration**: Built-in tools for enhanced AI capabilities
 - 📝 **TypeScript Support**: Full type safety and modern development experience
+- 🔄 **LangGraph Workflow**: Powered by LangGraph for robust AI agent orchestration
 
 ## Prerequisites
 
@@ -27,7 +29,7 @@ npm install
 ### 2. Run the Application
 
 ```bash
-# Development mode
+# Development mode with interactive menu
 npm run dev
 
 # Or build and run
@@ -38,7 +40,25 @@ npm start
 The application will present you with a menu to choose between:
 
 - **Setup/Configure Model & Credentials**: Configure your AI model and API keys
-- **Run LangGraph Application**: Execute the AI agent with your configured model
+- **Show Workflow Diagram**: View the LangGraph workflow structure
+- **Run Interactive AI Assistant**: Start chatting with the AI assistant
+
+## Interactive AI Assistant
+
+Once you start the interactive assistant, you can:
+
+- 💬 **Chat naturally**: Ask questions and have conversations
+- 🧮 **Use tools**: The AI can perform calculations, search the web, and work with files
+- 📚 **Maintain context**: The AI remembers your entire conversation
+- 🚪 **Easy exit**: Type `/quit` to end the conversation
+
+### Available Tools
+
+The AI assistant has access to several tools:
+
+- **Calculator**: Perform mathematical calculations
+- **Web Search**: Search the internet for current information
+- **File Operations**: Read and write files (when needed)
 
 ## Configuration
 
@@ -66,9 +86,12 @@ This separation allows you to easily switch between different providers without 
 ## Project Structure
 
 ```
-langgraph-barebones/
-├── app.ts          # Main LangGraph application with integrated setup
+langgrapjs/
+├── app.ts          # Main application with integrated setup menu
+├── workflow.ts     # LangGraph workflow and interactive assistant
 ├── tools.ts        # AI tools and functions
+├── setup.ts        # Setup and configuration logic
+├── config.json     # Application configuration
 ├── package.json    # Dependencies and scripts
 ├── .env.openai     # OpenAI credentials (created by setup)
 └── .env.gemini     # Gemini credentials (created by setup)
@@ -87,6 +110,15 @@ langgraph-barebones/
 - [Clack](https://www.clack.cc/) - Beautiful CLI components
 - [LangChain](https://langchain.com/) - AI application framework
 - [TypeScript](https://www.typescriptlang.org/) - Type-safe JavaScript
+
+## LangGraph Workflow
+
+The application uses LangGraph to create a robust AI agent workflow:
+
+1. **Agent Node**: Processes user input and decides whether to use tools
+2. **Tools Node**: Executes tools when needed (calculator, search, etc.)
+3. **Conditional Routing**: Automatically routes between agent and tools based on AI decisions
+4. **State Management**: Maintains conversation state across interactions
 
 ## Security Notes
 
@@ -107,3 +139,33 @@ Ensure you've completed the setup process and your credential files exist.
 ### Invalid API key format
 
 The setup process validates API key formats. Make sure you're using the correct key type for your selected model.
+
+### Conversation not maintaining context
+
+The conversation state is automatically managed by LangGraph. If you're experiencing issues, try restarting the application.
+
+## Example Usage
+
+```
+🤖 Interactive AI Assistant with Memory
+Type your messages below. Type '/quit' to exit.
+
+🗣️  You: What's 15 * 23?
+🤔 Thinking...
+✅ Response ready
+🤖 Assistant: 15 * 23 = 345
+
+🔧 Tools used:
+  • calculator: {"expression": "15 * 23"}
+
+🗣️  You: What about 345 + 100?
+🤔 Thinking...
+✅ Response ready
+🤖 Assistant: 345 + 100 = 445
+
+🔧 Tools used:
+  • calculator: {"expression": "345 + 100"}
+
+🗣️  You: /quit
+👋 Goodbye! Conversation ended.
+```
