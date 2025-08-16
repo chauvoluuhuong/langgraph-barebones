@@ -3,14 +3,15 @@
 // Load environment variables
 import "dotenv/config";
 
-// Check if API key is set
-if (!process.env.OPENAI_API_KEY) {
-  console.error("Error: OPENAI_API_KEY environment variable is not set");
-  console.error("Please create a .env file with your OpenAI API key");
+// Check if model type is set
+if (!process.env.MODEL_TYPE) {
+  console.error("Error: MODEL_TYPE environment variable is not set");
+  console.error("Please run 'npm run setup' to configure your model");
   process.exit(1);
 }
 
 import { ChatOpenAI } from "@langchain/openai";
+import { ChatGoogleGenerativeAI } from "@langchain/google-genai";
 import { HumanMessage, AIMessage } from "@langchain/core/messages";
 import { ToolNode } from "@langchain/langgraph/prebuilt";
 import { StateGraph, MessagesAnnotation } from "@langchain/langgraph";
@@ -19,11 +20,46 @@ import { tools } from "./tools";
 // Define the tools for the agent to use
 const toolNode = new ToolNode(tools);
 
-// Create a model and give it access to the tools
-const model = new ChatOpenAI({
-  model: "gpt-4",
-  temperature: 0,
-}).bindTools(tools);
+// Create model based on configuration
+let model: any;
+
+if (process.env.MODEL_TYPE === "openai") {
+  if (!process.env.OPENAI_API_KEY) {
+    console.error("Error: OPENAI_API_KEY environment variable is not set");
+    console.error(
+      "Please run 'npm run setup' to configure your OpenAI API key"
+    );
+    process.exit(1);
+  }
+
+  const modelName = process.env.MODEL_NAME || "gpt-4";
+  model = new ChatOpenAI({
+    model: modelName,
+    temperature: 0,
+  }).bindTools(tools);
+
+  console.log(`🤖 Using OpenAI ${modelName} model`);
+} else if (process.env.MODEL_TYPE === "gemini") {
+  if (!process.env.GOOGLE_API_KEY) {
+    console.error("Error: GOOGLE_API_KEY environment variable is not set");
+    console.error(
+      "Please run 'npm run setup' to configure your Google AI API key"
+    );
+    process.exit(1);
+  }
+
+  const modelName = process.env.MODEL_NAME || "gemini-pro";
+  model = new ChatGoogleGenerativeAI({
+    model: modelName,
+    temperature: 0,
+  }).bindTools(tools);
+
+  console.log(`🤖 Using Google ${modelName} model`);
+} else {
+  console.error(`Error: Unknown MODEL_TYPE '${process.env.MODEL_TYPE}'`);
+  console.error("Supported types: 'openai' or 'gemini'");
+  process.exit(1);
+}
 
 // Define the function that determines whether to continue or not
 function shouldContinue({ messages }: typeof MessagesAnnotation.State) {

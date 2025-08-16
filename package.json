@@ -8,6 +8,7 @@
     "build": "tsc",
     "start": "node dist/app.js",
     "dev": "tsx app.ts",
+    "setup": "tsx setup.ts",
     "clean": "rm -rf dist"
   },
   "keywords": [
@@ -19,7 +20,10 @@
   "author": "",
   "license": "MIT",
   "dependencies": {
+    "@clack/core": "^0.5.0",
+    "@clack/prompts": "^0.11.0",
     "@langchain/core": "^0.3.0",
+    "@langchain/google-genai": "^0.2.16",
     "@langchain/langgraph": "^0.2.0",
     "@langchain/openai": "^0.3.0",
     "dotenv": "^16.4.5"
