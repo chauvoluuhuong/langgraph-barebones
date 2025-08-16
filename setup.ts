@@ -5,6 +5,21 @@ import { join } from "path";
 export async function setup() {
   intro("🤖 LangGraph Model Setup");
 
+  // Load existing configuration first
+  const existingConfig = await loadCredentials();
+  let defaultModelType = "openai";
+  let defaultModelName = "";
+  let defaultApiKey = "";
+
+  if (existingConfig) {
+    defaultModelType = existingConfig.provider;
+    defaultModelName = existingConfig.modelName;
+    defaultApiKey = existingConfig.apiKey;
+    note(
+      "📋 Found existing configuration. Current values will be used as defaults."
+    );
+  }
+
   // Select model type
   const modelType = await select({
     message: "Which AI model provider would you like to use?",
@@ -12,6 +27,7 @@ export async function setup() {
       { value: "openai", label: "OpenAI (GPT models)" },
       { value: "gemini", label: "Google Gemini" },
     ],
+    initialValue: defaultModelType as "openai" | "gemini",
   });
 
   if (!modelType) {
@@ -26,7 +42,9 @@ export async function setup() {
     const openaiModel = await text({
       message: "Enter the OpenAI model name you want to use:",
       placeholder: "gpt-4",
+      initialValue: modelType === defaultModelType ? defaultModelName : "",
       validate: (value) => {
+        value = value || defaultModelName;
         if (!value || value.trim().length === 0) {
           return "Model name cannot be empty";
         }
@@ -49,7 +67,9 @@ export async function setup() {
     const geminiModel = await text({
       message: "Enter the Gemini model name you want to use:",
       placeholder: "gemini-2.5-flash",
+      initialValue: modelType === defaultModelType ? defaultModelName : "",
       validate: (value) => {
+        value = value || defaultModelName;
         if (!value || value.trim().length === 0) {
           return "Model name cannot be empty";
         }
@@ -85,7 +105,9 @@ export async function setup() {
     const openaiKey = await text({
       message: "Enter your OpenAI API key:",
       placeholder: "sk-...",
+      initialValue: modelType === defaultModelType ? defaultApiKey : "",
       validate: (value) => {
+        value = value || defaultApiKey;
         if (!value || value.length < 10) {
           return "API key must be at least 10 characters long";
         }
@@ -110,7 +132,9 @@ export async function setup() {
     const geminiKey = await text({
       message: "Enter your Google AI API key:",
       placeholder: "AIza...",
+      initialValue: modelType === defaultModelType ? defaultApiKey : "",
       validate: (value) => {
+        value = value || defaultApiKey;
         if (!value || value.length < 10) {
           return "API key must be at least 10 characters long";
         }
