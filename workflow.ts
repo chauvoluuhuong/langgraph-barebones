@@ -3,6 +3,7 @@ import { ChatGoogleGenerativeAI } from "@langchain/google-genai";
 import { HumanMessage, AIMessage } from "@langchain/core/messages";
 import { ToolNode } from "@langchain/langgraph/prebuilt";
 import { StateGraph, MessagesAnnotation } from "@langchain/langgraph";
+
 import { tools } from "./tools";
 
 export async function showWorkflow() {
@@ -167,16 +168,76 @@ export async function runApplication() {
   // Finally, we compile it into a LangChain Runnable.
   const app = workflow.compile();
 
-  // Use the agent
-  const finalState = await app.invoke({
-    messages: [new HumanMessage("what is the weather in sf")],
-  });
-  console.log(finalState.messages[finalState.messages.length - 1].content);
+  console.log("\n🤖 Interactive AI Assistant with Memory");
+  console.log(
+    "Type your messages below. Type 'quit' or 'exit' to end the conversation.\n"
+  );
 
-  const nextState = await app.invoke({
-    // Including the messages from the previous run gives the LLM context.
-    // This way it knows we're asking about the weather in NY
-    messages: [...finalState.messages, new HumanMessage("what about ny")],
+  // Interactive conversation loop with manual memory management
+  const readline = await import("readline");
+  const rl = readline.createInterface({
+    input: process.stdin,
+    output: process.stdout,
   });
-  console.log(nextState.messages[nextState.messages.length - 1].content);
+
+  const askQuestion = (question: string): Promise<string> => {
+    return new Promise((resolve) => {
+      rl.question(question, (answer) => {
+        resolve(answer);
+      });
+    });
+  };
+
+  // Maintain conversation history manually
+  let conversationHistory: any[] = [];
+
+  try {
+    while (true) {
+      const userInput = await askQuestion("🗣️  You: ");
+
+      // Check if user wants to quit
+      if (
+        userInput.toLowerCase() === "quit" ||
+        userInput.toLowerCase() === "exit"
+      ) {
+        console.log("\n👋 Goodbye! Conversation ended.");
+        break;
+      }
+
+      // Skip empty messages
+      if (userInput.trim() === "") {
+        continue;
+      }
+
+      try {
+        // Create messages array with conversation history plus new user message
+        const messagesToSend = [
+          ...conversationHistory,
+          new HumanMessage(userInput),
+        ];
+
+        // Process the user's message with conversation context
+        const response = await app.invoke({
+          messages: messagesToSend,
+        });
+
+        // Get the new messages that were added
+        const newMessages = response.messages.slice(messagesToSend.length);
+
+        // Add the user message and new assistant messages to conversation history
+        conversationHistory.push(new HumanMessage(userInput));
+        conversationHistory.push(...newMessages);
+
+        // Display the last assistant message
+        const lastAssistantMessage = newMessages[newMessages.length - 1];
+        console.log("🤖 Assistant:", lastAssistantMessage.content);
+        console.log(); // Empty line for better readability
+      } catch (error) {
+        console.error("❌ Error processing message:", error);
+        console.log("Please try again.\n");
+      }
+    }
+  } finally {
+    rl.close();
+  }
 }

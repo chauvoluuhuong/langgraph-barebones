@@ -1,5 +1,5 @@
 {
-  "modelType": "openai",
-  "modelName": "gpt-4",
-  "provider": "openai"
+  "modelType": "gemini",
+  "modelName": "gemini-2.5-flash",
+  "provider": "gemini"
 }
