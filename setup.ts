@@ -1,50 +1,75 @@
 import { intro, outro, select, text, note, spinner } from "@clack/prompts";
 import { writeFileSync, existsSync, readFileSync } from "fs";
 import { join } from "path";
+import { merge } from "lodash";
+
+export enum ModelType {
+  OPENAI = "openai",
+  GEMINI = "gemini",
+}
+
+export interface ModelInfo {
+  modelType?: ModelType;
+  modelName?: string;
+  apiKey?: string;
+}
+
+export interface Config {
+  modelUsed: ModelInfo;
+  [ModelType.OPENAI]: ModelInfo;
+  [ModelType.GEMINI]: ModelInfo;
+}
+
+const CONFIG_DEFAULT: Config = {
+  modelUsed: {
+    modelType: ModelType.OPENAI,
+    modelName: "gpt-4",
+    apiKey: "",
+  },
+  [ModelType.GEMINI]: {
+    modelType: ModelType.GEMINI,
+    modelName: "gemini-2.5-flash",
+    apiKey: "",
+  },
+  [ModelType.OPENAI]: {
+    modelType: ModelType.OPENAI,
+    modelName: "gpt-4",
+    apiKey: "",
+  },
+};
 
 export async function setup() {
   intro("🤖 LangGraph Model Setup");
 
   // Load existing configuration first
-  const existingConfig = await loadCredentials();
-  let defaultModelType = "openai";
-  let defaultModelName = "";
-  let defaultApiKey = "";
-
-  if (existingConfig) {
-    defaultModelType = existingConfig.provider;
-    defaultModelName = existingConfig.modelName;
-    defaultApiKey = existingConfig.apiKey;
-    note(
-      "📋 Found existing configuration. Current values will be used as defaults."
-    );
-  }
+  const config = await loadCredentials();
 
   // Select model type
   const modelType = await select({
     message: "Which AI model provider would you like to use?",
     options: [
-      { value: "openai", label: "OpenAI (GPT models)" },
-      { value: "gemini", label: "Google Gemini" },
+      { value: ModelType.OPENAI, label: "OpenAI (GPT models)" },
+      { value: ModelType.GEMINI, label: "Google Gemini" },
     ],
-    initialValue: defaultModelType as "openai" | "gemini",
+    initialValue: config?.modelUsed?.modelType,
   });
 
   if (!modelType) {
     outro("No model provider selected. Setup cancelled.");
     return false;
   }
+  config.modelUsed.modelType = modelType as ModelType;
 
   // Get specific model name from user
   let specificModel = "";
-  if (modelType === "openai") {
+  if (modelType === ModelType.OPENAI) {
     note("Common OpenAI models: gpt-4, gpt-4-turbo, gpt-3.5-turbo, gpt-4o");
     const openaiModel = await text({
       message: "Enter the OpenAI model name you want to use:",
       placeholder: "gpt-4",
-      initialValue: modelType === defaultModelType ? defaultModelName : "",
+      initialValue: config[ModelType.OPENAI]?.modelName,
       validate: (value) => {
-        value = value || defaultModelName;
+        value = value || config[ModelType.OPENAI]?.modelName || "";
         if (!value || value.trim().length === 0) {
           return "Model name cannot be empty";
         }
@@ -59,7 +84,7 @@ export async function setup() {
       outro("No valid OpenAI model name provided. Setup cancelled.");
       return false;
     }
-    specificModel = openaiModel;
+    config[ModelType.OPENAI].modelName = openaiModel;
   } else if (modelType === "gemini") {
     note(
       "Common Gemini models: gemini-2.5-pro, gemini-2.5-flash, gemini-1.5-pro, gemini-1.5-flash"
@@ -67,9 +92,9 @@ export async function setup() {
     const geminiModel = await text({
       message: "Enter the Gemini model name you want to use:",
       placeholder: "gemini-2.5-flash",
-      initialValue: modelType === defaultModelType ? defaultModelName : "",
+      initialValue: config[ModelType.GEMINI]?.modelName,
       validate: (value) => {
-        value = value || defaultModelName;
+        value = value || config[ModelType.GEMINI]?.modelName || "";
         if (!value || value.trim().length === 0) {
           return "Model name cannot be empty";
         }
@@ -84,18 +109,13 @@ export async function setup() {
       outro("No valid Gemini model name provided. Setup cancelled.");
       return false;
     }
-    specificModel = geminiModel;
+    config[ModelType.GEMINI].modelName = geminiModel;
   }
 
   if (!specificModel || typeof specificModel !== "string") {
     outro("No valid model name provided. Setup cancelled.");
     return false;
   }
-
-  // Trim whitespace from model name
-  specificModel = specificModel.trim();
-
-  let apiKey = "";
 
   if (modelType === "openai") {
     note(
@@ -105,9 +125,9 @@ export async function setup() {
     const openaiKey = await text({
       message: "Enter your OpenAI API key:",
       placeholder: "sk-...",
-      initialValue: modelType === defaultModelType ? defaultApiKey : "",
+      initialValue: config[ModelType.OPENAI]?.apiKey,
       validate: (value) => {
-        value = value || defaultApiKey;
+        value = value || config[ModelType.OPENAI]?.apiKey || "";
         if (!value || value.length < 10) {
           return "API key must be at least 10 characters long";
         }
@@ -123,7 +143,7 @@ export async function setup() {
       return false;
     }
 
-    apiKey = openaiKey;
+    config[ModelType.OPENAI].apiKey = openaiKey;
   } else if (modelType === "gemini") {
     note(
       "You'll need a Google AI API key from https://makersuite.google.com/app/apikey"
@@ -132,9 +152,9 @@ export async function setup() {
     const geminiKey = await text({
       message: "Enter your Google AI API key:",
       placeholder: "AIza...",
-      initialValue: modelType === defaultModelType ? defaultApiKey : "",
+      initialValue: config[ModelType.GEMINI]?.apiKey,
       validate: (value) => {
-        value = value || defaultApiKey;
+        value = value || config[ModelType.GEMINI]?.apiKey || "";
         if (!value || value.length < 10) {
           return "API key must be at least 10 characters long";
         }
@@ -150,7 +170,13 @@ export async function setup() {
       return false;
     }
 
-    apiKey = geminiKey;
+    config[ModelType.GEMINI].apiKey = geminiKey;
+  }
+
+  if (config.modelUsed.modelType === ModelType.OPENAI) {
+    config.modelUsed = config[ModelType.OPENAI];
+  } else if (config.modelUsed.modelType === ModelType.GEMINI) {
+    config.modelUsed = config[ModelType.GEMINI];
   }
 
   // Write API key to .env file
@@ -158,42 +184,16 @@ export async function setup() {
   s.start("Saving configuration...");
 
   try {
-    // Read existing .env file or create new one
-    const envPath = join(process.cwd(), ".env");
-    let envContent = "";
+    writeFileSync(
+      join(__dirname, "config.json"),
+      JSON.stringify(config, null, 2)
+    );
 
-    if (existsSync(envPath)) {
-      envContent = readFileSync(envPath, "utf8");
-    }
-
-    // Add or update the API key
-    const apiKeyEnvVar =
-      modelType === "openai" ? "OPENAI_API_KEY" : "GOOGLE_API_KEY";
-
-    // Remove existing API key line if it exists
-    const lines = envContent
-      .split("\n")
-      .filter((line) => !line.startsWith(`${apiKeyEnvVar}=`));
-    lines.push(`${apiKeyEnvVar}=${apiKey}`);
-
-    envContent = lines.join("\n");
-
-    writeFileSync(envPath, envContent);
-
-    // Save non-credential data to config.json
-    const configPath = join(process.cwd(), "config.json");
-    const configData = {
-      modelType: modelType,
-      modelName: specificModel,
-      provider: modelType,
-    };
-
-    writeFileSync(configPath, JSON.stringify(configData, null, 2));
-
-    s.stop("✅ Configuration saved successfully!");
-
-    note(`API key saved to .env file as ${apiKeyEnvVar}`);
-    note("Model configuration saved to config.json");
+    writeFileSync(
+      join(__dirname, ".env"),
+      `OPENAI_API_KEY=${config[ModelType.OPENAI].apiKey}\nGOOGLE_API_KEY=${config[ModelType.GEMINI].apiKey}`
+    );
+    note("Saved configuration to config.json");
     note("You can now run your LangGraph application!");
     return true;
   } catch (error) {
@@ -203,7 +203,7 @@ export async function setup() {
   }
 }
 
-export async function loadCredentials() {
+export async function loadCredentials(): Promise<Config> {
   // Check for config.json file
   const configPath = join(process.cwd(), "config.json");
   const envPath = join(process.cwd(), ".env");
@@ -211,62 +211,33 @@ export async function loadCredentials() {
   if (!existsSync(configPath)) {
     console.error("❌ config.json not found!");
     console.error("Please run setup first to configure your model.");
-    return null;
+    return CONFIG_DEFAULT;
   }
 
   if (!existsSync(envPath)) {
     console.error("❌ .env file not found!");
     console.error("Please run setup first to configure your API keys.");
-    return null;
+    return CONFIG_DEFAULT;
   }
 
   try {
     // Read config.json
     const configContent = readFileSync(configPath, "utf8");
-    const config = JSON.parse(configContent);
 
-    const { modelType, modelName, provider } = config;
+    const config: Config = merge(CONFIG_DEFAULT, JSON.parse(configContent));
 
-    if (!modelType || !modelName || !provider) {
+    if (!config.modelUsed) {
       console.error("❌ Invalid config.json format!");
       console.error("Please run setup again to reconfigure.");
-      return null;
+      return CONFIG_DEFAULT;
     }
 
-    // Read .env file
-    const envContent = readFileSync(envPath, "utf8");
-    const envLines = envContent.split("\n");
+    config[ModelType.GEMINI]!.apiKey = process.env.GOOGLE_API_KEY || "";
+    config[ModelType.OPENAI]!.apiKey = process.env.OPENAI_API_KEY || "";
 
-    let apiKey = "";
-
-    // Look for the appropriate API key based on provider
-    if (provider === "openai") {
-      for (const line of envLines) {
-        if (line.startsWith("OPENAI_API_KEY=")) {
-          apiKey = line.split("=")[1];
-          break;
-        }
-      }
-    } else if (provider === "gemini") {
-      for (const line of envLines) {
-        if (line.startsWith("GOOGLE_API_KEY=")) {
-          apiKey = line.split("=")[1];
-          break;
-        }
-      }
-    }
-
-    if (!apiKey) {
-      console.error(
-        `❌ ${provider.toUpperCase()}_API_KEY not found in .env file!`
-      );
-      console.error("Please run setup again to configure your API key.");
-      return null;
-    }
-
-    return { modelType, modelName, apiKey, provider };
+    return config;
   } catch (error) {
     console.error("❌ Error reading configuration files:", error);
-    return null;
+    return CONFIG_DEFAULT;
   }
 }
