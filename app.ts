@@ -1,72 +1,49 @@
-// agent.mts
-
 // Load environment variables
 import "dotenv/config";
 
-// Check if API key is set
-if (!process.env.OPENAI_API_KEY) {
-  console.error("Error: OPENAI_API_KEY environment variable is not set");
-  console.error("Please create a .env file with your OpenAI API key");
-  process.exit(1);
-}
+import { intro, outro, select } from "@clack/prompts";
+import { setup } from "./setup";
+import { runApplication, showWorkflow } from "./workflow";
 
-import { ChatOpenAI } from "@langchain/openai";
-import { HumanMessage, AIMessage } from "@langchain/core/messages";
-import { ToolNode } from "@langchain/langgraph/prebuilt";
-import { StateGraph, MessagesAnnotation } from "@langchain/langgraph";
-import { tools } from "./tools";
+async function main() {
+  intro("🤖 LangGraph Application");
 
-// Define the tools for the agent to use
-const toolNode = new ToolNode(tools);
+  while (true) {
+    const choice = await select({
+      message: "What would you like to do?",
+      options: [
+        { value: "setup", label: "Setup/Configure Model & Credentials" },
+        { value: "workflow", label: "View LangGraph Workflow Diagram" },
+        { value: "run", label: "Run LangGraph Application" },
+        { value: "exit", label: "Exit Application" },
+      ],
+    });
 
-// Create a model and give it access to the tools
-const model = new ChatOpenAI({
-  model: "gpt-4",
-  temperature: 0,
-}).bindTools(tools);
-
-// Define the function that determines whether to continue or not
-function shouldContinue({ messages }: typeof MessagesAnnotation.State) {
-  const lastMessage = messages[messages.length - 1] as AIMessage;
-
-  // If the LLM makes a tool call, then we route to the "tools" node
-  if (lastMessage.tool_calls?.length) {
-    return "tools";
+    if (choice === "setup") {
+      const success = await setup();
+      if (success) {
+        console.log("✅ Setup complete! 🎉");
+      } else {
+        console.log("❌ Setup failed or was cancelled.");
+      }
+      console.log("\n"); // Add spacing before returning to menu
+    } else if (choice === "workflow") {
+      await showWorkflow();
+      console.log("\n"); // Add spacing before returning to menu
+    } else if (choice === "run") {
+      await runApplication();
+      console.log("\n"); // Add spacing before returning to menu
+    } else if (choice === "exit") {
+      outro("Goodbye! 👋");
+      break;
+    } else {
+      console.log("No option selected.");
+      console.log("\n"); // Add spacing before returning to menu
+    }
   }
-  // Otherwise, we stop (reply to the user) using the special "__end__" node
-  return "__end__";
 }
 
-// Define the function that calls the model
-async function callModel(state: typeof MessagesAnnotation.State) {
-  const response = await model.invoke(state.messages as any);
-
-  // We return a list, because this will get added to the existing list
-  return { messages: [response] };
-}
-
-// Define a new graph
-const workflow = new StateGraph(MessagesAnnotation)
-  .addNode("agent", callModel)
-  .addEdge("__start__", "agent") // __start__ is a special name for the entrypoint
-  .addNode("tools", toolNode)
-  .addEdge("tools", "agent")
-  .addConditionalEdges("agent", shouldContinue);
-
-// Finally, we compile it into a LangChain Runnable.
-const app = workflow.compile();
-
-app.getGraphAsync().then((graph) => console.log(graph.drawMermaid()));
-
-// Use the agent
-const finalState = await app.invoke({
-  messages: [new HumanMessage("what is the weather in sf")],
+main().catch((error) => {
+  console.error("Application failed:", error);
+  process.exit(1);
 });
-console.log(finalState.messages[finalState.messages.length - 1].content);
-
-const nextState = await app.invoke({
-  // Including the messages from the previous run gives the LLM context.
-  // This way it knows we're asking about the weather in NY
-  messages: [...finalState.messages, new HumanMessage("what about ny")],
-});
-console.log(nextState.messages[nextState.messages.length - 1].content);
