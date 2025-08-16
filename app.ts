@@ -87,7 +87,6 @@ async function setup() {
   specificModel = specificModel.trim();
 
   let apiKey = "";
-  let envContent = "";
 
   if (modelType === "openai") {
     note(
@@ -114,7 +113,6 @@ async function setup() {
     }
 
     apiKey = openaiKey;
-    envContent = `OPENAI_API_KEY=${apiKey}\nMODEL_TYPE=openai\nMODEL_NAME=${specificModel}\n`;
   } else if (modelType === "gemini") {
     note(
       "You'll need a Google AI API key from https://makersuite.google.com/app/apikey"
@@ -140,24 +138,49 @@ async function setup() {
     }
 
     apiKey = geminiKey;
-    envContent = `GOOGLE_API_KEY=${apiKey}\nMODEL_TYPE=gemini\nMODEL_NAME=${specificModel}\n`;
   }
 
-  // Write to appropriate .env file
+  // Write API key to .env file
   const s = spinner();
   s.start("Saving configuration...");
 
   try {
-    const envFileName = modelType === "openai" ? ".env.openai" : ".env.gemini";
-    const envPath = join(process.cwd(), envFileName);
+    // Read existing .env file or create new one
+    const envPath = join(process.cwd(), ".env");
+    let envContent = "";
+
+    if (existsSync(envPath)) {
+      envContent = readFileSync(envPath, "utf8");
+    }
+
+    // Add or update the API key
+    const apiKeyEnvVar =
+      modelType === "openai" ? "OPENAI_API_KEY" : "GOOGLE_API_KEY";
+
+    // Remove existing API key line if it exists
+    const lines = envContent
+      .split("\n")
+      .filter((line) => !line.startsWith(`${apiKeyEnvVar}=`));
+    lines.push(`${apiKeyEnvVar}=${apiKey}`);
+
+    envContent = lines.join("\n");
+
     writeFileSync(envPath, envContent);
+
+    // Save non-credential data to config.json
+    const configPath = join(process.cwd(), "config.json");
+    const configData = {
+      modelType: modelType,
+      modelName: specificModel,
+      provider: modelType,
+    };
+
+    writeFileSync(configPath, JSON.stringify(configData, null, 2));
+
     s.stop("✅ Configuration saved successfully!");
 
-    note(
-      `Your ${envFileName} file has been created with ${String(
-        modelType
-      ).toUpperCase()} credentials.`
-    );
+    note(`API key saved to .env file as ${apiKeyEnvVar}`);
+    note("Model configuration saved to config.json");
     note("You can now run your LangGraph application!");
     return true;
   } catch (error) {
@@ -168,51 +191,71 @@ async function setup() {
 }
 
 async function loadCredentials() {
-  // Check for credential files
-  const openaiEnvPath = join(process.cwd(), ".env.openai");
-  const geminiEnvPath = join(process.cwd(), ".env.gemini");
+  // Check for config.json file
+  const configPath = join(process.cwd(), "config.json");
+  const envPath = join(process.cwd(), ".env");
 
-  let modelType = "";
-  let modelName = "";
-  let apiKey = "";
+  if (!existsSync(configPath)) {
+    console.error("❌ config.json not found!");
+    console.error("Please run setup first to configure your model.");
+    return null;
+  }
 
-  if (existsSync(openaiEnvPath)) {
-    const openaiEnv = readFileSync(openaiEnvPath, "utf8");
-    const lines = openaiEnv.split("\n");
-    for (const line of lines) {
-      if (line.startsWith("OPENAI_API_KEY=")) {
-        apiKey = line.split("=")[1];
-      } else if (line.startsWith("MODEL_TYPE=")) {
-        modelType = line.split("=")[1];
-      } else if (line.startsWith("MODEL_NAME=")) {
-        modelName = line.split("=")[1];
+  if (!existsSync(envPath)) {
+    console.error("❌ .env file not found!");
+    console.error("Please run setup first to configure your API keys.");
+    return null;
+  }
+
+  try {
+    // Read config.json
+    const configContent = readFileSync(configPath, "utf8");
+    const config = JSON.parse(configContent);
+
+    const { modelType, modelName, provider } = config;
+
+    if (!modelType || !modelName || !provider) {
+      console.error("❌ Invalid config.json format!");
+      console.error("Please run setup again to reconfigure.");
+      return null;
+    }
+
+    // Read .env file
+    const envContent = readFileSync(envPath, "utf8");
+    const envLines = envContent.split("\n");
+
+    let apiKey = "";
+
+    // Look for the appropriate API key based on provider
+    if (provider === "openai") {
+      for (const line of envLines) {
+        if (line.startsWith("OPENAI_API_KEY=")) {
+          apiKey = line.split("=")[1];
+          break;
+        }
+      }
+    } else if (provider === "gemini") {
+      for (const line of envLines) {
+        if (line.startsWith("GOOGLE_API_KEY=")) {
+          apiKey = line.split("=")[1];
+          break;
+        }
       }
     }
 
-    if (apiKey && modelType && modelName) {
-      return { modelType, modelName, apiKey, provider: "openai" };
+    if (!apiKey) {
+      console.error(
+        `❌ ${provider.toUpperCase()}_API_KEY not found in .env file!`
+      );
+      console.error("Please run setup again to configure your API key.");
+      return null;
     }
+
+    return { modelType, modelName, apiKey, provider };
+  } catch (error) {
+    console.error("❌ Error reading configuration files:", error);
+    return null;
   }
-
-  if (existsSync(geminiEnvPath)) {
-    const geminiEnv = readFileSync(geminiEnvPath, "utf8");
-    const lines = geminiEnv.split("\n");
-    for (const line of lines) {
-      if (line.startsWith("GOOGLE_API_KEY=")) {
-        apiKey = line.split("=")[1];
-      } else if (line.startsWith("MODEL_TYPE=")) {
-        modelType = line.split("=")[1];
-      } else if (line.startsWith("MODEL_NAME=")) {
-        modelName = line.split("=")[1];
-      }
-    }
-
-    if (apiKey && modelType && modelName) {
-      return { modelType, modelName, apiKey, provider: "gemini" };
-    }
-  }
-
-  return null;
 }
 
 async function runApplication() {
@@ -224,6 +267,13 @@ async function runApplication() {
       "Please run setup first to configure your model and credentials."
     );
     return;
+  }
+
+  // Set the appropriate environment variable for the model
+  if (credentials.provider === "openai") {
+    process.env.OPENAI_API_KEY = credentials.apiKey;
+  } else if (credentials.provider === "gemini") {
+    process.env.GOOGLE_API_KEY = credentials.apiKey;
   }
 
   console.log(
