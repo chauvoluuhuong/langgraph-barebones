@@ -24,21 +24,7 @@ A TypeScript LangGraph application that supports both OpenAI and Google Gemini m
 npm install
 ```
 
-### 2. Run Setup
-
-```bash
-npm run setup
-```
-
-This interactive setup will:
-
-- Let you choose between OpenAI and Gemini model providers
-- Allow you to input any specific model name you want to use
-- Prompt for your API credentials
-- Create a `.env` file with your configuration
-- Validate your API keys
-
-### 3. Run the Application
+### 2. Run the Application
 
 ```bash
 # Development mode
@@ -49,19 +35,28 @@ npm run build
 npm start
 ```
 
+The application will present you with a menu to choose between:
+
+- **Setup/Configure Model & Credentials**: Configure your AI model and API keys
+- **Run LangGraph Application**: Execute the AI agent with your configured model
+
 ## Configuration
 
-The setup process creates a `.env` file with:
+The setup process creates separate credential files for each provider:
 
 ```env
-# For OpenAI
+# .env.openai
 OPENAI_API_KEY=sk-your-key-here
 MODEL_TYPE=openai
+MODEL_NAME=your-model-name
 
-# OR for Gemini
+# .env.gemini
 GOOGLE_API_KEY=AIza-your-key-here
 MODEL_TYPE=gemini
+MODEL_NAME=your-model-name
 ```
+
+This separation allows you to easily switch between different providers without reconfiguring.
 
 ## API Key Sources
 
@@ -72,17 +67,16 @@ MODEL_TYPE=gemini
 
 ```
 langgraph-barebones/
-├── app.ts          # Main LangGraph application
-├── setup.ts        # Interactive setup script using Clack
+├── app.ts          # Main LangGraph application with integrated setup
 ├── tools.ts        # AI tools and functions
 ├── package.json    # Dependencies and scripts
-└── .env           # Environment variables (created by setup)
+├── .env.openai     # OpenAI credentials (created by setup)
+└── .env.gemini     # Gemini credentials (created by setup)
 ```
 
 ## Scripts
 
-- `npm run setup` - Interactive model and credential setup
-- `npm run dev` - Run in development mode with tsx
+- `npm run dev` - Run in development mode with integrated setup menu
 - `npm run build` - Build TypeScript to JavaScript
 - `npm start` - Run built application
 - `npm run clean` - Clean build artifacts
@@ -102,14 +96,14 @@ langgraph-barebones/
 
 ## Troubleshooting
 
-### "MODEL_TYPE environment variable is not set"
+### "No valid credentials found"
 
-Run `npm run setup` to configure your model and credentials.
+Run the application and select "Setup/Configure Model & Credentials" to configure your model and API keys.
 
 ### "API key environment variable is not set"
 
-Ensure you've completed the setup process and your `.env` file exists.
+Ensure you've completed the setup process and your credential files exist.
 
 ### Invalid API key format
 
-The setup script validates API key formats. Make sure you're using the correct key type for your selected model.
+The setup process validates API key formats. Make sure you're using the correct key type for your selected model.

@@ -8,7 +8,6 @@
     "build": "tsc",
     "start": "node dist/app.js",
     "dev": "tsx app.ts",
-    "setup": "tsx setup.ts",
     "clean": "rm -rf dist"
   },
   "keywords": [
