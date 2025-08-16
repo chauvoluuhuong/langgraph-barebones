@@ -1,5 +1,14 @@
 {
-  "modelType": "gemini",
-  "modelName": "gemini-2.5-flash",
-  "provider": "gemini"
+  "modelUsed": {
+    "modelType": "openai",
+    "modelName": "gpt-4"
+  },
+  "gemini": {
+    "modelType": "openai",
+    "modelName": "gemini-2.5-flash"
+  },
+  "openai": {
+    "modelType": "openai",
+    "modelName": "gpt-4"
+  }
 }

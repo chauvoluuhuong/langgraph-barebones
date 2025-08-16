@@ -26,9 +26,11 @@
     "@langchain/langgraph": "^0.2.0",
     "@langchain/langgraph-checkpoint": "^0.1.0",
     "@langchain/openai": "^0.3.0",
-    "dotenv": "^16.4.5"
+    "dotenv": "^16.4.5",
+    "lodash": "^4.17.21"
   },
   "devDependencies": {
+    "@types/lodash": "^4.17.20",
     "@types/node": "^22.0.0",
     "tsx": "^4.19.0",
     "typescript": "^5.6.0"

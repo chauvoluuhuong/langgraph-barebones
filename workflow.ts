@@ -3,34 +3,37 @@ import { ChatGoogleGenerativeAI } from "@langchain/google-genai";
 import { HumanMessage, AIMessage } from "@langchain/core/messages";
 import { ToolNode } from "@langchain/langgraph/prebuilt";
 import { StateGraph, MessagesAnnotation } from "@langchain/langgraph";
-import { MemorySaver } from "@langchain/langgraph-checkpoint";
+// Load environment variables
+import "dotenv/config";
 
 import { tools } from "./tools";
 import { spinner, text } from "@clack/prompts";
 
+// /**
+//  * Sets up the appropriate environment variables for the model based on configuration
+//  */
+// async function setupModelApiKey(): Promise<void> {
+//   const { loadCredentials } = await import("./setup");
+//   const credentials = await loadCredentials();
+
+//   if (credentials.modelUsed?.modelType === "openai") {
+//     process.env.OPENAI_API_KEY = credentials.modelUsed.apiKey;
+//   } else if (credentials.modelUsed?.modelType === "gemini") {
+//     process.env.GOOGLE_API_KEY = credentials.modelUsed.apiKey;
+//   }
+// }
+
 export async function showWorkflow() {
+  // Set up the appropriate environment variables for the model
+  // await setupModelApiKey();
+
   // Import loadCredentials dynamically to avoid circular dependency
   const { loadCredentials } = await import("./setup");
   const credentials = await loadCredentials();
 
-  if (!credentials) {
-    console.error("❌ No valid credentials found!");
-    console.error(
-      "Please run setup first to configure your model and credentials."
-    );
-    return;
-  }
-
-  // Set the appropriate environment variable for the model
-  if (credentials.provider === "openai") {
-    process.env.OPENAI_API_KEY = credentials.apiKey;
-  } else if (credentials.provider === "gemini") {
-    process.env.GOOGLE_API_KEY = credentials.apiKey;
-  }
-
   console.log(
-    `🤖 Using ${credentials.provider.toUpperCase()} ${
-      credentials.modelName
+    `🤖 Using ${credentials.modelUsed?.modelType?.toUpperCase()} ${
+      credentials.modelUsed?.modelName
     } model`
   );
 
@@ -40,18 +43,20 @@ export async function showWorkflow() {
   // Create model based on configuration
   let model: any;
 
-  if (credentials.modelType === "openai") {
+  if (credentials.modelUsed?.modelType === "openai") {
     model = new ChatOpenAI({
-      model: credentials.modelName,
+      model: credentials.modelUsed.modelName || "gpt-4",
       temperature: 0,
     }).bindTools(tools);
-  } else if (credentials.modelType === "gemini") {
+  } else if (credentials.modelUsed?.modelType === "gemini") {
     model = new ChatGoogleGenerativeAI({
-      model: credentials.modelName,
+      model: credentials.modelUsed.modelName || "gemini-2.5-flash",
       temperature: 0,
     }).bindTools(tools);
   } else {
-    console.error(`Error: Unknown MODEL_TYPE '${credentials.modelType}'`);
+    console.error(
+      `Error: Unknown MODEL_TYPE '${credentials.modelUsed?.modelType}'`
+    );
     return;
   }
 
@@ -93,28 +98,16 @@ export async function showWorkflow() {
 }
 
 export async function runApplication() {
+  // Set up the appropriate environment variables for the model
+  // await setupModelApiKey();
+
   // Import loadCredentials dynamically to avoid circular dependency
   const { loadCredentials } = await import("./setup");
   const credentials = await loadCredentials();
 
-  if (!credentials) {
-    console.error("❌ No valid credentials found!");
-    console.error(
-      "Please run setup first to configure your model and credentials."
-    );
-    return;
-  }
-
-  // Set the appropriate environment variable for the model
-  if (credentials.provider === "openai") {
-    process.env.OPENAI_API_KEY = credentials.apiKey;
-  } else if (credentials.provider === "gemini") {
-    process.env.GOOGLE_API_KEY = credentials.apiKey;
-  }
-
   console.log(
-    `🤖 Using ${credentials.provider.toUpperCase()} ${
-      credentials.modelName
+    `🤖 Using ${credentials.modelUsed?.modelType?.toUpperCase()} ${
+      credentials.modelUsed?.modelName
     } model`
   );
 
@@ -124,18 +117,20 @@ export async function runApplication() {
   // Create model based on configuration
   let model: any;
 
-  if (credentials.modelType === "openai") {
+  if (credentials.modelUsed?.modelType === "openai") {
     model = new ChatOpenAI({
-      model: credentials.modelName,
+      model: credentials.modelUsed.modelName || "gpt-4",
       temperature: 0,
     }).bindTools(tools);
-  } else if (credentials.modelType === "gemini") {
+  } else if (credentials.modelUsed?.modelType === "gemini") {
     model = new ChatGoogleGenerativeAI({
-      model: credentials.modelName,
+      model: credentials.modelUsed.modelName || "gemini-2.5-flash",
       temperature: 0,
     }).bindTools(tools);
   } else {
-    console.error(`Error: Unknown MODEL_TYPE '${credentials.modelType}'`);
+    console.error(
+      `Error: Unknown MODEL_TYPE '${credentials.modelUsed?.modelType}'`
+    );
     return;
   }
 
