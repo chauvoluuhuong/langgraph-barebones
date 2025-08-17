@@ -2,7 +2,7 @@ import { intro, outro, select, text, note, spinner } from "@clack/prompts";
 import { writeFileSync, existsSync, readFileSync } from "fs";
 import { join } from "path";
 import _ from "lodash";
-import { config } from "dotenv";
+import "dotenv/config";
 
 export enum ModelType {
   OPENAI = "openai",
@@ -39,7 +39,7 @@ const CONFIG_DEFAULT: Config = {
   },
 };
 
-export async function setup() {
+export async function setupModel() {
   intro("🤖 LangGraph Model Setup");
 
   // Load existing configuration first
@@ -189,7 +189,7 @@ export async function setup() {
 
     writeFileSync(
       join(process.cwd(), ".env"),
-      `OPENAI_API_KEY=${config[ModelType.OPENAI].apiKey}\nGOOGLE_API_KEY=${config[ModelType.GEMINI].apiKey}`
+      `OPENAI_API_KEY=${config[ModelType.OPENAI].apiKey || process.env.OPENAI_API_KEY}\nGOOGLE_API_KEY=${config[ModelType.GEMINI].apiKey || process.env.GOOGLE_API_KEY}`
     );
     note("Saved configuration to config.json");
     note("You can now run your LangGraph application!");
@@ -208,14 +208,14 @@ export async function loadCredentials(): Promise<Config> {
   const envPath = join(process.cwd(), ".env");
   let warn = false;
   if (!existsSync(configPath)) {
-    console.warn("❌ config.json not found!");
+    // console.warn("❌ config.json not found!");
     warn = true;
     // console.error("Please run setup first to configure your model.");
     return CONFIG_DEFAULT;
   }
 
   if (!existsSync(envPath)) {
-    console.warn("❌ .env file not found!");
+    // console.warn("❌ .env file not found!");
     warn = true;
     // console.error("Please run setup first to configure your API keys.");
     return CONFIG_DEFAULT;
