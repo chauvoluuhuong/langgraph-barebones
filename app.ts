@@ -2,7 +2,7 @@
 import "dotenv/config";
 
 import { intro, outro, select } from "@clack/prompts";
-import { setup } from "./setup";
+import { setupModel } from "modules/setup/setupModel";
 import { buildWorkflow } from "modules/workflows/basic";
 import { conversation } from "modules/conversations";
 
@@ -14,15 +14,15 @@ async function main() {
       const choice = await select({
         message: "What would you like to do?",
         options: [
-          { value: "setup", label: "Setup/Configure Model & Credentials" },
+          { value: "setupModel", label: "Setup/Configure Model & Credentials" },
           { value: "workflow", label: "View LangGraph Workflow Diagram" },
           { value: "run", label: "Run LangGraph Application" },
           { value: "exit", label: "Exit Application" },
         ],
       });
 
-      if (choice === "setup") {
-        const success = await setup();
+      if (choice === "setupModel") {
+        const success = await setupModel();
         if (success) {
           console.log("✅ Setup complete! 🎉");
         } else {
@@ -32,7 +32,7 @@ async function main() {
       } else if (choice === "workflow") {
         const workflow = await buildWorkflow();
         const graph = await workflow.getGraphAsync();
-        console.log(graph);
+        console.log(graph.drawMermaid());
         console.log("\n"); // Add spacing before returning to menu
       } else if (choice === "run") {
         const workflow = await buildWorkflow();

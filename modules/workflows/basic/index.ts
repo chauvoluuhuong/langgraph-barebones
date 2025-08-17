@@ -4,7 +4,7 @@ import { StateGraph, MessagesAnnotation } from "@langchain/langgraph";
 import "dotenv/config";
 import { tools } from "modules/tools";
 import { buildModel } from "modules/ai";
-import { loadCredentials } from "setup";
+import { loadCredentials } from "modules/setup/setupModel";
 import { callModel } from "./nodes";
 import { shouldContinue } from "./nodes";
 

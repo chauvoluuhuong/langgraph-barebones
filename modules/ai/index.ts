@@ -1,7 +1,6 @@
 import { ChatOpenAI } from "@langchain/openai";
 import { ChatGoogleGenerativeAI } from "@langchain/google-genai";
-import { ModelType } from "setup";
-import { Config } from "setup";
+import { ModelType, Config } from "modules/setup/setupModel";
 import { tools } from "modules/tools";
 import { Tool } from "@langchain/core/tools";
 import "dotenv/config";
