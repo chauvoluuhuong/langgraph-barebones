@@ -3,7 +3,8 @@ import "dotenv/config";
 
 import { intro, outro, select } from "@clack/prompts";
 import { setup } from "./setup";
-import { basicWorkflow, runApplication } from "modules/workflows/basic";
+import { buildWorkflow } from "modules/workflows/basic";
+import { conversation } from "modules/conversations";
 
 async function main() {
   intro("🤖 LangGraph Application");
@@ -29,11 +30,13 @@ async function main() {
         }
         console.log("\n"); // Add spacing before returning to menu
       } else if (choice === "workflow") {
-        const graph = await basicWorkflow.getGraphAsync();
+        const workflow = await buildWorkflow();
+        const graph = await workflow.getGraphAsync();
         console.log(graph);
         console.log("\n"); // Add spacing before returning to menu
       } else if (choice === "run") {
-        await runApplication();
+        const workflow = await buildWorkflow();
+        await conversation(workflow);
         console.log("\n"); // Add spacing before returning to menu
       } else if (choice === "exit") {
         outro("Goodbye! 👋");
