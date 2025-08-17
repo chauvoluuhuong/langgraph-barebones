@@ -6,11 +6,11 @@ import { tools } from "modules/tools";
 import { Tool } from "@langchain/core/tools";
 import "dotenv/config";
 
-export const getModel = (
+var model: any;
+export const buildModel = (
   credentials: Config,
   toolsProvided: Tool[] = tools
 ) => {
-  let model;
   if (credentials.modelUsed?.modelType === ModelType.OPENAI) {
     model = new ChatOpenAI({
       model: credentials.modelUsed.modelName || "gpt-4",
@@ -32,5 +32,9 @@ export const getModel = (
     model = model.bindTools(toolsProvided);
   }
 
+  return model;
+};
+
+export const getModel = () => {
   return model;
 };

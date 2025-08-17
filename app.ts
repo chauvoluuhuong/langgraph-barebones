@@ -3,7 +3,7 @@ import "dotenv/config";
 
 import { intro, outro, select } from "@clack/prompts";
 import { setup } from "./setup";
-import { runApplication, showWorkflow } from "modules/workflows/basic";
+import { basicWorkflow, runApplication } from "modules/workflows/basic";
 
 async function main() {
   intro("🤖 LangGraph Application");
@@ -29,7 +29,8 @@ async function main() {
         }
         console.log("\n"); // Add spacing before returning to menu
       } else if (choice === "workflow") {
-        await showWorkflow();
+        const graph = await basicWorkflow.getGraphAsync();
+        console.log(graph);
         console.log("\n"); // Add spacing before returning to menu
       } else if (choice === "run") {
         await runApplication();
