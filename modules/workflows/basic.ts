@@ -5,59 +5,21 @@ import { ToolNode } from "@langchain/langgraph/prebuilt";
 import { StateGraph, MessagesAnnotation } from "@langchain/langgraph";
 // Load environment variables
 import "dotenv/config";
-
-import { tools } from "./tools";
+import { tools } from "modules/tools";
 import { spinner, text } from "@clack/prompts";
-
-// /**
-//  * Sets up the appropriate environment variables for the model based on configuration
-//  */
-// async function setupModelApiKey(): Promise<void> {
-//   const { loadCredentials } = await import("./setup");
-//   const credentials = await loadCredentials();
-
-//   if (credentials.modelUsed?.modelType === "openai") {
-//     process.env.OPENAI_API_KEY = credentials.modelUsed.apiKey;
-//   } else if (credentials.modelUsed?.modelType === "gemini") {
-//     process.env.GOOGLE_API_KEY = credentials.modelUsed.apiKey;
-//   }
-// }
+import { getModel } from "modules/ai";
+import { loadCredentials } from "setup";
 
 export async function showWorkflow() {
-  // Set up the appropriate environment variables for the model
-  // await setupModelApiKey();
-
-  // Import loadCredentials dynamically to avoid circular dependency
-  const { loadCredentials } = await import("./setup");
   const credentials = await loadCredentials();
-
-  console.log(
-    `🤖 Using ${credentials.modelUsed?.modelType?.toUpperCase()} ${
-      credentials.modelUsed?.modelName
-    } model`
-  );
 
   // Define the tools for the agent to use
   const toolNode = new ToolNode(tools);
 
   // Create model based on configuration
-  let model: any;
-
-  if (credentials.modelUsed?.modelType === "openai") {
-    model = new ChatOpenAI({
-      model: credentials.modelUsed.modelName || "gpt-4",
-      temperature: 0,
-    }).bindTools(tools);
-  } else if (credentials.modelUsed?.modelType === "gemini") {
-    model = new ChatGoogleGenerativeAI({
-      model: credentials.modelUsed.modelName || "gemini-2.5-flash",
-      temperature: 0,
-    }).bindTools(tools);
-  } else {
-    console.error(
-      `Error: Unknown MODEL_TYPE '${credentials.modelUsed?.modelType}'`
-    );
-    return;
+  let model = getModel(credentials, tools);
+  if (!model) {
+    throw new Error("Failed to create model");
   }
 
   // Define the function that determines whether to continue or not
@@ -74,7 +36,7 @@ export async function showWorkflow() {
 
   // Define the function that calls the model
   async function callModel(state: typeof MessagesAnnotation.State) {
-    const response = await model.invoke(state.messages as any);
+    const response = await model!.invoke(state.messages as any);
 
     // We return a list, because this will get added to the existing list
     return { messages: [response] };
@@ -98,11 +60,6 @@ export async function showWorkflow() {
 }
 
 export async function runApplication() {
-  // Set up the appropriate environment variables for the model
-  // await setupModelApiKey();
-
-  // Import loadCredentials dynamically to avoid circular dependency
-  const { loadCredentials } = await import("./setup");
   const credentials = await loadCredentials();
 
   console.log(
@@ -189,10 +146,9 @@ export async function runApplication() {
     if (userInput.trim() === "") {
       continue;
     }
-
+    // Show spinner while processing
+    const s = spinner();
     try {
-      // Show spinner while processing
-      const s = spinner();
       s.start("🤔 Thinking...");
 
       // Add user message to conversation state
@@ -202,7 +158,7 @@ export async function runApplication() {
       const response = await app.invoke(conversationState);
 
       // Stop the spinner
-      s.stop("✅ Response ready");
+      s.stop();
 
       // Update conversation state with the response
       conversationState = response;
@@ -235,6 +191,9 @@ export async function runApplication() {
     } catch (error) {
       console.error("❌ Error processing message:", error);
       console.log("Please try again.\n");
+      throw error;
+    } finally {
+      s.stop();
     }
   }
 }

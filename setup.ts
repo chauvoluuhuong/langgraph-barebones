@@ -2,7 +2,6 @@ import { intro, outro, select, text, note, spinner } from "@clack/prompts";
 import { writeFileSync, existsSync, readFileSync } from "fs";
 import { join } from "path";
 import _ from "lodash";
-import { config } from "dotenv";
 
 export enum ModelType {
   OPENAI = "openai",

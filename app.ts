@@ -3,7 +3,7 @@ import "dotenv/config";
 
 import { intro, outro, select } from "@clack/prompts";
 import { setup } from "./setup";
-import { runApplication, showWorkflow } from "./workflow";
+import { runApplication, showWorkflow } from "modules/workflows/basic";
 
 async function main() {
   intro("🤖 LangGraph Application");
