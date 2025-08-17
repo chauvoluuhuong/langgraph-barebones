@@ -1,7 +1,7 @@
 {
   "modelUsed": {
-    "modelType": "gemini",
-    "modelName": "gpt-4"
+    "modelType": "openai",
+    "modelName": "gemini-2.5-flash"
   },
   "gemini": {
     "modelType": "openai",
